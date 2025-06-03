@@ -166,7 +166,17 @@ If you’re not sure what AutoML is or how these models work, check the **Inform
             y = LabelEncoder().fit_transform(y)
 
         imputer = SimpleImputer(strategy="mean")
-        X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
+        try:
+            imputed_array = imputer.fit_transform(X)
+            if imputed_array.shape[1] != X.shape[1]:
+                st.warning("Some columns were dropped during imputation due to missing values.")
+                X = pd.DataFrame(imputed_array)
+            else:
+                X = pd.DataFrame(imputed_array, columns=X.columns)
+        except Exception as e:
+            st.error(f"Error during data imputation: {e}")
+            st.stop()
+
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
         model_map = {
