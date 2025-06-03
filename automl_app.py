@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.impute import SimpleImputer
-from sklearn.metrics import accuracy_score, precision_score, confusion_matrix
+from sklearn.metrics import accuracy_score, precision_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -42,7 +42,6 @@ AutoML, or Automated Machine Learning, is the process of using automation to sel
 ### Performance Metrics
 - **Accuracy**: The percentage of total predictions the model got right. Good for measuring overall correctness.
 - **Precision**: The percentage of predictions labeled positive that were actually positive. Useful when false positives are costly (e.g., fraud detection).
-- **Confusion Matrix**: A table that summarizes prediction results by showing true vs. predicted values.
 
 _Models with over 80% accuracy are typically considered strong performers for general classification tasks._
 """)
@@ -109,7 +108,12 @@ If you’re not sure what AutoML is or how these models work, check the **Inform
                     recommendation.append("K-Nearest Neighbors")
                 recommendation.append("Logistic Regression")
 
+                st.markdown("**Model Recommendations**")
+                st.markdown("These suggestions are based on your dataset’s size and structure.")
                 st.info(f"Recommended Models: {', '.join(set(recommendation[:3]))}")
+
+                if num_rows < 100:
+                    st.warning("This dataset has fewer than 100 rows. Model results may not be reliable due to small sample size.")
 
                 if st.button("Next: Select Models"):
                     st.session_state.step = 2
@@ -136,8 +140,14 @@ If you’re not sure what AutoML is or how these models work, check the **Inform
             if st.button("Next: Select Target Column"):
                 st.session_state.step = 3
 
+        st.markdown("### Start Over")
+        if st.button("Start Over"):
+            st.session_state.clear()
+            st.rerun()
+
     elif st.session_state.step == 3:
         st.markdown("### Step 3: Select your target column")
+        st.markdown("Choose a **categorical column** (not numeric or continuous) as your target. The models in this app are designed for **classification**, not regression.")
         df = st.session_state.df
         target_col = st.selectbox("Choose the column to predict:", df.columns)
 
@@ -150,6 +160,11 @@ If you’re not sure what AutoML is or how these models work, check the **Inform
                 st.session_state.target_col = target_col
                 if st.button("Run Models"):
                     st.session_state.step = 4
+
+        st.markdown("### Start Over")
+        if st.button("Start Over"):
+            st.session_state.clear()
+            st.rerun()
 
     elif st.session_state.step == 4:
         st.markdown("### Step 4: Training and Evaluation")
@@ -175,6 +190,10 @@ If you’re not sure what AutoML is or how these models work, check the **Inform
                 X = pd.DataFrame(imputed_array, columns=X.columns)
         except Exception as e:
             st.error(f"Error during data imputation: {e}")
+            st.markdown("### Start Over")
+            if st.button("Start Over"):
+                st.session_state.clear()
+                st.rerun()
             st.stop()
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
@@ -230,8 +249,14 @@ If you’re not sure what AutoML is or how these models work, check the **Inform
             st.markdown("This scatter plot places each model on a 2D grid, with accuracy on one axis and precision on the other. Models in the top-right quadrant are generally best, showing both accurate and reliable predictions.")
             fig2, ax2 = plt.subplots()
             ax2.scatter(summary_df["Accuracy"], summary_df["Precision"])
+            buffer_x = 0.5
+            buffer_y = 0.5
+            x_min, x_max = summary_df["Accuracy"].min() - buffer_x, summary_df["Accuracy"].max() + buffer_x
+            y_min, y_max = summary_df["Precision"].min() - buffer_y, summary_df["Precision"].max() + buffer_y
+            ax2.set_xlim(x_min, x_max)
+            ax2.set_ylim(y_min, y_max)
             for _, row in summary_df.iterrows():
-                ax2.annotate(row["Model"], (row["Accuracy"] + 0.3, row["Precision"] + 0.3))
+                ax2.annotate(row["Model"], (row["Accuracy"], row["Precision"]), xytext=(5, 5), textcoords='offset points')
             ax2.set_xlabel("Accuracy (%)")
             ax2.set_ylabel("Precision (%)")
             ax2.set_title("Model Accuracy vs. Precision")
@@ -259,5 +284,10 @@ If you’re not sure what AutoML is or how these models work, check the **Inform
             if st.button("Start Over"):
                 st.session_state.clear()
                 st.rerun()
+
         else:
-            st.error("No models were successfully trained.")
+            st.error("No models were successfully trained. Please check your data and try again.")
+            st.markdown("### Start Over")
+            if st.button("Start Over"):
+                st.session_state.clear()
+                st.rerun()
